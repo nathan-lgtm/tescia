@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classement — TeSciA</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+    :root{--bg:#0f1117;--surface:#181c27;--surface2:#1e2336;--ink:#e8e6f0;--ink2:#9896b0;--ink3:#5a5870;--accent:#4f8ef7;--accent-l:#1a3060;--green:#2ecc8a;--green-l:#0d3322;--gold:#f5c842;--border:#2a2e45;--border-s:#363b58;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Source Serif 4',Georgia,serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+    .topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border-s);display:flex;align-items:center;padding:0 1.5rem;gap:1.5rem;}
+    .logo-badge{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:600;color:var(--accent);background:var(--accent-l);padding:3px 10px;border-radius:4px;border:1px solid var(--accent);}
+    .nav-btn{font-size:0.82rem;color:var(--ink2);background:none;border:1px solid var(--border);border-radius:4px;padding:4px 11px;cursor:pointer;text-decoration:none;transition:all 0.15s;}
+    .nav-btn:hover{color:var(--ink);border-color:var(--border-s);}
+    .topbar-right{margin-left:auto;font-size:0.78rem;color:var(--ink2);font-style:italic;}
+    .page{max-width:800px;margin:0 auto;padding:2rem 2rem 4rem;}
+    .page-title{font-size:1.8rem;font-weight:300;margin-bottom:0.4rem;} .page-title em{font-style:italic;color:var(--accent);}
+    .page-sub{font-size:0.85rem;color:var(--ink3);font-style:italic;margin-bottom:2rem;}
+    /* Podium */
+    .podium{display:flex;align-items:flex-end;justify-content:center;gap:1.5rem;margin-bottom:2.5rem;}
+    .pod{display:flex;flex-direction:column;align-items:center;gap:8px;}
+    .pod-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:600;border:2px solid var(--border-s);background:var(--surface2);color:var(--ink2);}
+    .pod.p1 .pod-avatar{width:64px;height:64px;font-size:1.4rem;border-color:var(--gold);color:var(--gold);background:#1a1500;}
+    .pod.p2 .pod-avatar{border-color:#6080a0;color:#6080a0;background:#101820;}
+    .pod.p3 .pod-avatar{border-color:#a07840;color:#a07840;background:#181208;}
+    .pod-name{font-size:0.82rem;color:var(--ink2);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .pod-score{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--ink3);}
+    .pod-bar{width:56px;border-radius:4px 4px 0 0;min-height:20px;}
+    .pod.p1 .pod-bar{background:#3a3010;width:68px;}
+    .pod.p2 .pod-bar{background:#1a2840;}
+    .pod.p3 .pod-bar{background:#281e08;}
+    .pod-rank{font-size:0.68rem;color:var(--ink3);}
+    /* Table */
+    .section-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink3);margin-bottom:1rem;display:flex;align-items:center;gap:1rem;}
+    .section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+    .refresh-btn{font-family:'Source Serif 4',serif;font-size:0.78rem;color:var(--ink3);background:none;border:1px solid var(--border);border-radius:4px;padding:3px 9px;cursor:pointer;}
+    .lb-table{width:100%;border-collapse:collapse;}
+    .lb-table thead th{text-align:left;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--ink3);padding:0 0 8px;border-bottom:1px solid var(--border-s);font-family:'JetBrains Mono',monospace;font-weight:400;}
+    .lb-table thead th:last-child,.lb-table thead th:nth-child(3),.lb-table thead th:nth-child(4){text-align:right;}
+    .lb-row td{padding:11px 0;border-bottom:1px solid var(--border);vertical-align:middle;}
+    .lb-row.me td{background:var(--accent-l);padding-left:8px;padding-right:8px;}
+    .rank-num{font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--ink3);width:28px;}
+    .user-name{font-size:0.95rem;}
+    .you-tag{font-size:0.68rem;color:var(--accent);margin-left:6px;font-style:italic;}
+    .mini-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:3px;}
+    .mini-fill{height:100%;border-radius:3px;background:var(--green);}
+    .mini-label{font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--ink3);}
+    .prog-cell{width:180px;padding-right:12px;}
+    .streak-cell,.done-cell{text-align:right;white-space:nowrap;}
+    .streak-val{font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--gold);font-weight:600;}
+    .done-val{font-family:'JetBrains Mono',monospace;font-size:0.88rem;color:var(--ink);}
+    .done-sub{font-size:0.65rem;color:var(--ink3);display:block;}
+    .empty{text-align:center;padding:3rem;color:var(--ink3);font-style:italic;}
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <span class="logo-badge">TeSciA</span>
+  <a class="nav-btn" href="app.html">← Retour</a>
+  <div class="topbar-right" id="topbarUser"></div>
+</header>
+<div class="page">
+  <h1 class="page-title">Classement <em>général</em></h1>
+  <p class="page-sub">Progression de tous les membres · mise à jour en temps réel</p>
+  <div id="podium" class="podium" style="display:none"></div>
+  <div class="section-title">Tous les membres <button class="refresh-btn" id="refreshBtn">↻ Actualiser</button></div>
+  <div id="tableContainer"><p class="empty">Chargement…</p></div>
+</div>
+<script>
+// ════════════════════════════════
+// ⚙️ REMPLACE CES DEUX VALEURS
+// ════════════════════════════════
+const SUPABASE_URL  = 'https://sb_publishable_VOGrDI9TEzIyjEdffttb5g_fOw1yx7X.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzcGp1aGV0dmxjZ2ticnh6aWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwOTg4NTgsImV4cCI6MjA5MTY3NDg1OH0.7ckFf7yAQbNs2b4qcZz8xbEY7J4LwGKIkkl_78YUoF4';
+// ════════════════════════════════
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+const TOTAL=0; // dynamique
+let myId=null;
+function initials(n){return n.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';}
+async function load(){
+  document.getElementById('tableContainer').innerHTML='<p class="empty">Chargement…</p>';
+  const{data}=await sb.from('leaderboard').select('*');
+  if(!data||!data.length){document.getElementById('tableContainer').innerHTML='<p class="empty">Aucune donnée.</p>';return;}
+  data.sort((a,b)=>b.correct_count-a.correct_count);
+  const maxScore=data[0]?.correct_count||1;
+  // Podium
+  const pod=document.getElementById('podium');
+  const order=[data[1],data[0],data[2]].filter(Boolean);
+  const cls=['p2','p1','p3'],ranks=['2e','1er','3e'];
+  pod.innerHTML='';
+  order.forEach((u,i)=>{
+    const rank=data.indexOf(u)+1;
+    const barH=Math.max(20,Math.round(u.correct_count/maxScore*100));
+    const isMe=u.id===myId;
+    const s=document.createElement('div');s.className='pod '+cls[i];
+    s.innerHTML=`<div class="pod-avatar">${initials(u.username)}</div><div class="pod-name">${u.username}${isMe?' (toi)':''}</div><div class="pod-score">${u.correct_count} pts</div><div class="pod-bar" style="height:${barH}px"></div><div class="pod-rank">${ranks[i]}</div>`;
+    pod.appendChild(s);
+  });
+  if(data.length>=2) pod.style.display='flex';
+  // Table
+  const table=document.createElement('table');table.className='lb-table';
+  table.innerHTML='<thead><tr><th>#</th><th>Membre</th><th>Progression</th><th>Streak</th><th>Score</th></tr></thead>';
+  const tbody=document.createElement('tbody');
+  data.forEach((u,i)=>{
+    const isMe=u.id===myId;
+    const tr=document.createElement('tr');tr.className='lb-row'+(isMe?' me':'');
+    tr.innerHTML=`<td class="rank-num">${i+1}</td><td class="user-name">${u.username}${isMe?'<span class="you-tag">toi</span>':''}</td><td class="prog-cell"><div class="mini-bar"><div class="mini-fill" style="width:${u.correct_count?Math.min(100,Math.round(u.correct_count/maxScore*100)):0}%"></div></div><div class="mini-label">${u.correct_count} bonnes rép.</div></td><td class="streak-cell"><span class="streak-val">🔥 ${u.active_days}</span></td><td class="done-cell"><span class="done-val">${u.correct_count}</span><span class="done-sub">/ ${u.total_attempts} essais</span></td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  document.getElementById('tableContainer').innerHTML='';
+  document.getElementById('tableContainer').appendChild(table);
+}
+async function init(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){location.href='index.html';return;}
+  myId=session.user.id;
+  const{data:p}=await sb.from('profiles').select('username').eq('id',myId).single();
+  document.getElementById('topbarUser').textContent=p?.username||'';
+  await load();
+  document.getElementById('refreshBtn').addEventListener('click',load);
+  setInterval(load,30000);
+}
+init();
+</script>
+</body>
+</html>
